@@ -7,6 +7,7 @@ from collections import Counter
 
 from .mcp_tools import create_proposed_dispatch, get_dispatch_policy, search_capacity
 from .models import Session, TraceEvent
+from .vertex_narrator import VertexNarrator
 
 
 class VoiceOpsEngine:
@@ -20,6 +21,7 @@ class VoiceOpsEngine:
     def __init__(self) -> None:
         self.sessions: dict[str, Session] = {}
         self.metrics: Counter[str] = Counter()
+        self.narrator = VertexNarrator()
 
     def new_session(self) -> Session:
         session = Session()
@@ -63,8 +65,7 @@ class VoiceOpsEngine:
             total += substitutions
         return text, total
 
-    def _natural_acknowledgement(self, issue_type: str, policy: dict) -> str:
-        # The action plan remains deterministic even when Vertex is configured.
+    def _approved_acknowledgement(self, issue_type: str) -> str:
         if issue_type == "gas_smell":
             return "This may be unsafe. Please leave the area now and contact emergency services. I am paging a human dispatcher; I will not attempt a remote diagnosis."
         if issue_type == "water_leak":
@@ -74,6 +75,15 @@ class VoiceOpsEngine:
         if issue_type == "locked_out":
             return "I can help with a lockout request. Before any dispatch, a human will verify approved contact details."
         return "I can capture the service issue and propose the next available service window."
+
+    def _natural_acknowledgement(self, session: Session, issue_type: str) -> str:
+        approved = self._approved_acknowledgement(issue_type)
+        started = time.perf_counter()
+        wording, used_vertex = self.narrator.polish(approved)
+        if used_vertex:
+            self.metrics["vertex_narrations"] += 1
+            self._trace(session, "voice-agent", "polish_approved_acknowledgement", "pass", "Vertex AI wording layer; deterministic action plan retained.", started)
+        return wording
 
     def handle_turn(self, session_id: str, transcript: str, confirmed: bool = False) -> dict:
         session = self.get(session_id)
@@ -95,7 +105,7 @@ class VoiceOpsEngine:
             session.proposal = None
             self._trace(session, "safety-agent", "block_automated_dispatch", "blocked", "Emergency safety protocol requires immediate human escalation.", safety_started)
             self.metrics["human_escalations"] += 1
-            reply = self._natural_acknowledgement(issue_type, policy)
+            reply = self._approved_acknowledgement(issue_type)
             session.transcript.append({"role": "agent", "text": reply})
             return {"reply": reply, "session": session.public(), "handoff": True}
 
@@ -114,7 +124,7 @@ class VoiceOpsEngine:
             handoff = True
         else:
             self._trace(session, "consent-agent", "verify_spoken_confirmation", "review", "No confirmation; proposal remains a draft.", safety_started)
-            reply = f"{self._natural_acknowledgement(issue_type, policy)} I can offer {session.proposal.proposed_window}. Would you like me to send this proposal to a human dispatcher for verification?"
+            reply = f"{self._natural_acknowledgement(session, issue_type)} I can offer {session.proposal.proposed_window}. Would you like me to send this proposal to a human dispatcher for verification?"
             handoff = False
         session.transcript.append({"role": "agent", "text": reply})
         return {"reply": reply, "session": session.public(), "handoff": handoff}
@@ -131,5 +141,6 @@ class VoiceOpsEngine:
             "safety_blocks": safety_blocks,
             "verified_handoffs": self.metrics["verified_handoffs"],
             "pii_redactions": sum(session.pii_redactions for session in sessions),
+            "vertex_narrations": self.metrics["vertex_narrations"],
             "slo": {"handoff_trace_complete": "100%", "unconfirmed_dispatches": 0},
         }
