@@ -7,6 +7,7 @@ from collections import Counter
 
 from .mcp_tools import create_proposed_dispatch, get_dispatch_policy, search_capacity
 from .models import Session, TraceEvent
+from .triage_agent import VertexTriageAgent
 from .vertex_narrator import VertexNarrator
 
 
@@ -22,6 +23,7 @@ class VoiceOpsEngine:
         self.sessions: dict[str, Session] = {}
         self.metrics: Counter[str] = Counter()
         self.narrator = VertexNarrator()
+        self.triage = VertexTriageAgent()
 
     def new_session(self) -> Session:
         session = Session()
@@ -42,19 +44,6 @@ class VoiceOpsEngine:
                 latency_ms=max(1, round((time.perf_counter() - started) * 1000)),
             )
         )
-
-    @staticmethod
-    def _classify(text: str) -> str:
-        lowered = text.lower()
-        if any(term in lowered for term in ("gas", "smell", "fumes", "carbon monoxide")):
-            return "gas_smell"
-        if any(term in lowered for term in ("leak", "flood", "water dripping", "burst pipe")):
-            return "water_leak"
-        if any(term in lowered for term in ("no heat", "heater", "heating", "furnace", "cold")):
-            return "no_heat"
-        if any(term in lowered for term in ("locked out", "lost key", "can't get in")):
-            return "locked_out"
-        return "other"
 
     @staticmethod
     def _redact(text: str) -> tuple[str, int]:
@@ -93,8 +82,8 @@ class VoiceOpsEngine:
         session.transcript.append({"role": "caller", "text": safe_text})
 
         triage_started = time.perf_counter()
-        issue_type = self._classify(safe_text)
-        self._trace(session, "triage-agent", "classify_service_intent", "pass", issue_type, triage_started)
+        issue_type, provider = self.triage.classify(safe_text)
+        self._trace(session, "triage-agent", "classify_service_intent", "pass", f"{issue_type}; provider={provider}", triage_started)
 
         policy_started = time.perf_counter()
         policy = get_dispatch_policy(issue_type)

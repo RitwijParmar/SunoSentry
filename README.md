@@ -34,6 +34,8 @@ portable production concerns rather than a single scripted appointment flow:
 - **Vertex AI, safely bounded:** Gemini can polish an already-approved spoken
   acknowledgement; it cannot classify risk, select policy, invoke an MCP write,
   or bypass the consent gate.
+- **Real cloud control plane:** redacted session state is durably stored in
+  Firestore and human-review handoffs publish redacted metadata to Pub/Sub.
 
 This is a simulated operational environment. It is not medical advice,
 emergency response, telephony, technician dispatch, or a customer deployment.
