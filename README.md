@@ -2,6 +2,8 @@
 
 **A verifiable multi-agent voice-operations platform for field-service dispatch.**
 
+**Live demo:** https://sunosentry-122722888597.us-east4.run.app
+
 Most voice-agent demos optimize for a natural conversation. SunoSentry is built
 for the operational moment after the conversation: whether a proposed service
 action is safe, grounded in policy, explicitly confirmed, and simple for a
@@ -58,6 +60,10 @@ does not need a telephony key. It can be deployed with:
 ```bash
 gcloud run deploy sunosentry --source . --region us-east4 --allow-unauthenticated
 ```
+
+The current public demo is deployed in `us-east4` with Cloud Run autoscaling to
+zero. The active revision was independently checked for health and for the
+gas/fume safety block before publication.
 
 See [deployment guidance](docs/deployment.md) for the production path:
 Vertex AI, Secret Manager, Cloud Trace, Pub/Sub, BigQuery, and a telephony
