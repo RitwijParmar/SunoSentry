@@ -25,3 +25,10 @@ def test_spoken_confirmation_creates_only_verified_handoff() -> None:
     result = engine.handle_turn(session.session_id, "My heater stopped working", confirmed=True)
     assert result["handoff"] is True
     assert result["session"]["proposal"]["confirmation_received"] is True
+
+
+def test_heating_language_is_a_priority_issue() -> None:
+    engine = VoiceOpsEngine()
+    session = engine.new_session()
+    result = engine.handle_turn(session.session_id, "My heating system stopped working")
+    assert result["session"]["proposal"]["issue_type"] == "no_heat"

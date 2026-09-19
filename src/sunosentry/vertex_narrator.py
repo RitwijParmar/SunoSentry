@@ -32,6 +32,8 @@ class VertexNarrator:
                 config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=90),
             )
             candidate = (response.text or "").strip()
-            return (candidate, True) if 1 <= len(candidate) <= 420 else (approved_copy, False)
+            # Reject fragmentary responses such as "I"; a model may shape the
+            # delivery, but not degrade the already-approved operational copy.
+            return (candidate, True) if 30 <= len(candidate) <= 420 else (approved_copy, False)
         except Exception:
             return approved_copy, False

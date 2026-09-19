@@ -50,7 +50,7 @@ class VoiceOpsEngine:
             return "gas_smell"
         if any(term in lowered for term in ("leak", "flood", "water dripping", "burst pipe")):
             return "water_leak"
-        if any(term in lowered for term in ("no heat", "heater", "furnace", "cold")):
+        if any(term in lowered for term in ("no heat", "heater", "heating", "furnace", "cold")):
             return "no_heat"
         if any(term in lowered for term in ("locked out", "lost key", "can't get in")):
             return "locked_out"
