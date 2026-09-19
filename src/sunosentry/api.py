@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .engine import VoiceOpsEngine
+from .benchmarks import CONTROLLED_BENCHMARK
 
 # In a local checkout the working directory is the repository; in the container
 # it is /app. Keep the UI outside the installed wheel and resolve it explicitly.
@@ -51,3 +52,8 @@ def turn(request: TurnRequest) -> dict:
 @app.get("/api/observability")
 def observability() -> dict:
     return engine.observability()
+
+
+@app.get("/api/benchmark")
+def benchmark() -> dict:
+    return CONTROLLED_BENCHMARK

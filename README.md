@@ -38,6 +38,14 @@ portable production concerns rather than a single scripted appointment flow:
 This is a simulated operational environment. It is not medical advice,
 emergency response, telephony, technician dispatch, or a customer deployment.
 
+## Measured control benchmark
+
+The repository includes a reproducible 36-case evaluation rather than invented
+business metrics: **12/12 emergency safety blocks, 24/24 consent-gate checks,
+36/36 complete traces, and 0 autonomous dispatches.** See
+[the controlled evaluation](docs/controlled_evaluation.md) for what these
+numbers do—and do not—prove.
+
 ## Architecture
 
 ```text
@@ -96,7 +104,8 @@ confirmation before a human-review handoff.
 
 ## Resume-safe framing
 
-> Built SunoSentry, a Cloud Run-deployed, multi-agent voice-operations demo
-> for field-service intake; implemented policy-grounded MCP evidence tools,
-> consent-gated dispatch proposals, PII redaction, and per-call safety/latency
-> traces. All operational data and integrations are simulated.
+> Built SunoSentry, a Cloud Run-deployed, multi-agent voice-operations platform
+> for field-service intake; validated 36 scripted safety/consent scenarios with
+> 12/12 emergency blocks, 24/24 consent-gate checks, complete decision traces,
+> and zero autonomous dispatches. All operational data and integrations are
+> simulated.
