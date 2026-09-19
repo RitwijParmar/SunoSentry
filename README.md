@@ -37,6 +37,9 @@ portable production concerns rather than a single scripted appointment flow:
 - **Real cloud control plane:** redacted session state is durably stored in
   Firestore and human-review handoffs publish redacted metadata to Pub/Sub.
 
+The live integration evidence, including the explicit Vertex fallback boundary,
+is recorded in [docs/live_gcp_evidence.md](docs/live_gcp_evidence.md).
+
 This is a simulated operational environment. It is not medical advice,
 emergency response, telephony, technician dispatch, or a customer deployment.
 
@@ -106,8 +109,8 @@ confirmation before a human-review handoff.
 
 ## Resume-safe framing
 
-> Built SunoSentry, a Cloud Run-deployed, multi-agent voice-operations platform
-> for field-service intake; validated 36 scripted safety/consent scenarios with
-> 12/12 emergency blocks, 24/24 consent-gate checks, complete decision traces,
-> and zero autonomous dispatches. All operational data and integrations are
-> simulated.
+> Built SunoSentry, a Cloud Run-deployed voice-operations control plane for
+> field-service intake; persisted redacted call state in Firestore, published
+> human-review events to Pub/Sub, and validated 36 scripted safety/consent
+> scenarios with 12/12 emergency blocks and 24/24 consent-gate checks. Capacity
+> and final dispatch remain simulated and human-reviewed.
