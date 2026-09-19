@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SunoSentry — Verifiable Voice Operations</title>
+  <style>
+    :root { --ink:#eaf0ff; --muted:#aab7d8; --bg:#07111f; --panel:#0e1d32; --line:#294364; --accent:#78e5ba; --warn:#ffc56e; --danger:#ff8496; }
+    * { box-sizing:border-box; } body { margin:0; background:radial-gradient(circle at 20% 0,#16345a,transparent 36%),var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,sans-serif; min-height:100vh; }
+    main { max-width:1300px; margin:auto; padding:32px 22px 52px; } header { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:26px; }
+    h1 { font-size:clamp(30px,4vw,52px); margin:0; letter-spacing:-.055em; } h1 span { color:var(--accent); } .sub { max-width:790px; color:var(--muted); line-height:1.55; margin-top:10px; } .badge { border:1px solid var(--accent); border-radius:999px; color:var(--accent); padding:8px 12px; white-space:nowrap; font-size:13px; }
+    .grid { display:grid; grid-template-columns:1.35fr .85fr; gap:18px; } .panel { background:color-mix(in srgb,var(--panel) 92%,transparent); border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:0 22px 50px #0003; }
+    h2 { margin:0 0 8px; font-size:17px; } .hint,small { color:var(--muted); line-height:1.45; } .conversation { height:410px; overflow:auto; padding-right:8px; display:flex; flex-direction:column; gap:12px; }
+    .bubble { padding:12px 14px; border-radius:14px; max-width:88%; line-height:1.45; }.agent { background:#16385c; align-self:flex-start; }.caller { background:#1b2a42; align-self:flex-end; }.event { border-left:3px solid var(--accent); background:#10253e; font-size:13px; align-self:stretch; max-width:100%; }
+    textarea { width:100%; background:#081526; color:var(--ink); border:1px solid var(--line); border-radius:12px; padding:12px; resize:vertical; min-height:72px; font:inherit; margin:14px 0 10px; } button { border:0; border-radius:10px; padding:11px 14px; font:600 14px inherit; cursor:pointer; color:#06120d; background:var(--accent); } button.secondary { background:transparent; color:var(--ink); border:1px solid var(--line); } button:disabled { opacity:.45; cursor:not-allowed; }
+    .controls { display:flex; gap:9px; flex-wrap:wrap; }.proposal { margin-top:16px; padding:14px; border:1px solid #355b73; border-radius:12px; background:#0b192c; }.proposal strong { color:var(--accent); }.blocked strong { color:var(--danger); }.metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:15px 0; }.metric { padding:12px; border-radius:12px; background:#0a1728; border:1px solid var(--line); }.metric b { display:block; font-size:22px; margin-top:4px; color:var(--accent); }
+    .trace { display:flex; flex-direction:column; gap:9px; max-height:392px; overflow:auto; }.step { border:1px solid var(--line); border-radius:10px; padding:10px; font-size:13px; }.step .meta { display:flex; justify-content:space-between; color:var(--muted); margin-bottom:4px; }.pass { border-left:3px solid var(--accent); }.review { border-left:3px solid var(--warn); }.blocked { border-left:3px solid var(--danger); }
+    .scenarios { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }.scenarios button { padding:7px 9px; font-size:12px; background:#d8e4ff; } footer { margin-top:20px; color:var(--muted); font-size:13px; } @media(max-width:850px){ header,.grid { display:block; }.badge { display:inline-block; margin-top:14px; }.grid .panel+ .panel { margin-top:16px; } .conversation { height:340px; }}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>Suno<span>Sentry</span></h1><div class="sub">Verifiable voice operations for field-service teams. Every dispatch recommendation is policy-grounded, consent-gated, and traceable—without silently booking, billing, or exposing raw caller audio.</div></div>
+      <div class="badge">● Cloud Run voice-ops demo</div>
+    </header>
+    <section class="grid">
+      <div class="panel"><h2>Live voice interaction</h2><div class="hint">Use the microphone for browser speech recognition, or type. The voice transcript stays in this session; phone numbers and SSNs are redacted before tracing.</div>
+        <div id="conversation" class="conversation"></div>
+        <textarea id="transcript" placeholder="Example: There is water leaking under my kitchen sink."></textarea>
+        <div class="controls"><button id="mic">🎙 Start listening</button><button id="send">Send message</button><button id="confirm" class="secondary">Confirm proposed window</button><button id="reset" class="secondary">New call</button></div>
+        <div class="scenarios"><button data-scenario="There is water leaking under my kitchen sink.">Water leak</button><button data-scenario="My furnace stopped and the apartment is cold.">No heat</button><button data-scenario="I smell gas near the boiler.">Safety escalation</button></div>
+        <div id="proposal" class="proposal"><strong>Action gate ready</strong><br><small>No dispatch proposal yet. SunoSentry only creates a human-review proposal after policy and capacity checks.</small></div>
+      </div>
+      <aside class="panel"><h2>VoiceOps observability</h2><div class="hint">A bounded supervisor coordinates specialists; MCP tools return named evidence only.</div>
+        <div class="metrics"><div class="metric"><small>Agent steps</small><b id="steps">0</b></div><div class="metric"><small>Safety blocks</small><b id="blocks">0</b></div><div class="metric"><small>Verified handoffs</small><b id="handoffs">0</b></div><div class="metric"><small>PII redactions</small><b id="redactions">0</b></div></div>
+        <h2>Current trace</h2><div id="trace" class="trace"><div class="step review">Start a call to see the policy, planner, consent, and supervisor steps.</div></div>
+      </aside>
+    </section>
+    <footer>Demo boundary: simulated capacity and human queue. No real technician, account, payment, calendar, or telephony action is performed.</footer>
+  </main>
+  <script>
+    let sessionId = null, recognition = null, listening = false;
+    const $ = id => document.getElementById(id);
+    const conversation = $('conversation');
+    function bubble(text, kind='agent') { const el=document.createElement('div'); el.className=`bubble ${kind}`; el.textContent=text; conversation.appendChild(el); conversation.scrollTop=conversation.scrollHeight; }
+    function speak(text) { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.rate=.98; speechSynthesis.speak(utterance); }
+    async function newCall(){ const data=await fetch('/api/sessions',{method:'POST'}).then(r=>r.json()); sessionId=data.session.session_id; conversation.innerHTML=''; bubble(data.reply); speak(data.reply); render(data.session); }
+    function render(session){ const p=session.proposal, box=$('proposal'); if(p){ box.className='proposal'; box.innerHTML=`<strong>${p.status === 'ready_for_handoff' ? '✓ Human-review handoff ready' : 'Confirmation required'}</strong><br><small>${p.issue_type.replaceAll('_',' ')} · ${p.urgency} · ${p.proposed_window}</small>`; } else if(session.trace.some(e=>e.outcome==='blocked')) { box.className='proposal blocked'; box.innerHTML='<strong>Safety escalation active</strong><br><small>Automated dispatch is blocked. The human queue has the full policy-grounded trace.</small>'; }
+      $('trace').innerHTML=session.trace.map(e=>`<div class="step ${e.outcome}"><div class="meta"><b>${e.agent}</b><span>${e.latency_ms} ms · ${e.outcome}</span></div><div>${e.decision}</div><small>${e.detail}</small></div>`).join(''); $('steps').textContent=session.trace.length; $('redactions').textContent=session.pii_redactions; refreshMetrics(); }
+    async function refreshMetrics(){ const m=await fetch('/api/observability').then(r=>r.json()); $('blocks').textContent=m.safety_blocks; $('handoffs').textContent=m.verified_handoffs; }
+    async function send(confirmed=false){ const text=$('transcript').value.trim(); if(!text || !sessionId) return; bubble(text,'caller'); $('transcript').value=''; const response=await fetch('/api/turns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,transcript:text,confirmed})}); const data=await response.json(); bubble(data.reply); speak(data.reply); render(data.session); }
+    $('send').onclick=()=>send(false); $('confirm').onclick=()=>{ $('transcript').value='Yes, please send that proposal to a human dispatcher.'; send(true); }; $('reset').onclick=newCall;
+    document.querySelectorAll('[data-scenario]').forEach(btn=>btn.onclick=()=>{ $('transcript').value=btn.dataset.scenario; send(false); });
+    $('mic').onclick=()=>{ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SpeechRecognition){ bubble('Browser speech recognition is unavailable here. You can type the request instead.','event'); return; } if(!recognition){ recognition=new SpeechRecognition(); recognition.lang='en-US'; recognition.interimResults=true; recognition.continuous=false; recognition.onresult=e=>{ let t=''; for(let i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript; $('transcript').value=t; }; recognition.onend=()=>{listening=false;$('mic').textContent='🎙 Start listening'; if($('transcript').value.trim())send(false);}; } if(!listening){listening=true;$('mic').textContent='■ Stop listening';recognition.start();}else{recognition.stop();} };
+    newCall();
+  </script>
+</body>
+</html>
