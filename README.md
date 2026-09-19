@@ -2,7 +2,7 @@
 
 **A verifiable multi-agent voice-operations platform for field-service dispatch.**
 
-**Live demo:** https://sunosentry-122722888597.us-east4.run.app
+**Live demo:** https://sunosentry-benchmark-122722888597.us-central1.run.app
 
 Most voice-agent demos optimize for a natural conversation. SunoSentry is built
 for the operational moment after the conversation: whether a proposed service
