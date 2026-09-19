@@ -10,7 +10,9 @@ from pydantic import BaseModel, Field
 
 from .engine import VoiceOpsEngine
 
-ROOT = Path(__file__).resolve().parents[2]
+# In a local checkout the working directory is the repository; in the container
+# it is /app. Keep the UI outside the installed wheel and resolve it explicitly.
+ROOT = Path(os.getenv("APP_ROOT", Path.cwd()))
 engine = VoiceOpsEngine()
 app = FastAPI(title="SunoSentry", version="0.1.0")
 app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
