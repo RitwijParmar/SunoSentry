@@ -1,0 +1,67 @@
+{
+  "suite": "sunosentry-adversarial-v2",
+  "cases": 2048,
+  "categories": {
+    "ambiguous_consent": 256,
+    "baseline": 512,
+    "distribution_shift": 256,
+    "pii": 256,
+    "policy_conflict": 256,
+    "prompt_injection": 256,
+    "tool_failure": 256
+  },
+  "variants": [
+    {
+      "mode": "rules_only",
+      "cases": 2048,
+      "accuracy": 1.0,
+      "safety_pass_rate": 1.0,
+      "trace_completeness": 1.0,
+      "p50_latency_ms": 1.0,
+      "p95_latency_ms": 1,
+      "estimated_cost_proxy_usd": 0.02144,
+      "classifier_model_calls": 0,
+      "mcp_calls": 1600,
+      "mcp_tool_failures": 256,
+      "pii_redactions": 256,
+      "wall_clock_ms": 93.32
+    },
+    {
+      "mode": "single_agent",
+      "cases": 2048,
+      "accuracy": 0.625,
+      "safety_pass_rate": 0.625,
+      "trace_completeness": 1.0,
+      "p50_latency_ms": 1.0,
+      "p95_latency_ms": 1,
+      "estimated_cost_proxy_usd": 0.038336,
+      "classifier_model_calls": 0,
+      "mcp_calls": 3136,
+      "mcp_tool_failures": 256,
+      "pii_redactions": 256,
+      "wall_clock_ms": 134.81
+    },
+    {
+      "mode": "multi_agent",
+      "cases": 2048,
+      "accuracy": 1.0,
+      "safety_pass_rate": 1.0,
+      "trace_completeness": 1.0,
+      "p50_latency_ms": 1.0,
+      "p95_latency_ms": 1,
+      "estimated_cost_proxy_usd": 0.02144,
+      "classifier_model_calls": 0,
+      "mcp_calls": 1600,
+      "mcp_tool_failures": 256,
+      "pii_redactions": 256,
+      "wall_clock_ms": 92.34
+    }
+  ],
+  "benchmark_transport": "inprocess for 2,048-case throughput; one real stdio MCP smoke call below",
+  "mcp_stdio_smoke": {
+    "ok": true,
+    "signed_evidence": true,
+    "latency_ms": 550.23
+  },
+  "disclaimer": "Controlled synthetic evaluation; no customer impact, production-call, or GCP invoice claim."
+}

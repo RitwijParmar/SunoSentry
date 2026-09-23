@@ -9,7 +9,8 @@ should add each integration only after a data-retention and security review.
 | Concern | GCP service | Control |
 |---|---|---|
 | API/runtime | Cloud Run | dedicated service account; min instances 0 |
-| Agent reasoning | Vertex AI | structured output; no tool authority by default |
+| Agent reasoning | Vertex AI | rules-first routing; Flash-Lite then larger-model escalation; explicit abstain |
+| Tool protocol | MCP stdio | stateless client, deny-by-default registry, risk annotations, signed evidence |
 | Session metadata | Firestore | short TTL; redacted transcript only |
 | Trace/metrics | Cloud Trace + Cloud Logging | trace ID on every specialist decision |
 | Event fan-out | Pub/Sub | replayable, schema-versioned handoff events |
@@ -36,3 +37,6 @@ should add each integration only after a data-retention and security review.
   reasoning, tool, and TTS stage.
 - Human reviewers must be able to reconstruct every proposed action from the
   redacted trace without listening to stored audio.
+- Unknown MCP tools and malformed arguments must be denied by default.
+- Every allowed MCP call must carry a trace ID, task handle, risk annotation,
+  and verifiable policy-evidence signature.

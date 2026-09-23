@@ -8,9 +8,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .engine import VoiceOpsEngine
-from .benchmarks import CONTROLLED_BENCHMARK
 from .cloud_runtime import FirestoreSessionStore, HandoffEventPublisher
+from .benchmarks import CONTROLLED_BENCHMARK
+from .engine import VoiceOpsEngine
 
 # In a local checkout the working directory is the repository; in the container
 # it is /app. Keep the UI outside the installed wheel and resolve it explicitly.
@@ -18,7 +18,7 @@ ROOT = Path(os.getenv("APP_ROOT", Path.cwd()))
 engine = VoiceOpsEngine()
 session_store = FirestoreSessionStore()
 handoff_events = HandoffEventPublisher()
-app = FastAPI(title="SunoSentry", version="0.1.0")
+app = FastAPI(title="SunoSentry", version="0.2.0")
 app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
 
 
@@ -35,7 +35,7 @@ def home() -> FileResponse:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "sunosentry", "mode": "verifiable-voice-demo"}
+    return {"status": "ok", "service": "sunosentry", "mode": "verifiable-voice-demo", "mcp_client": "stdio", "triage": "rules-first-abstain"}
 
 
 @app.post("/api/sessions")

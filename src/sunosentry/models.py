@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
 
 
 def now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass
@@ -17,6 +17,7 @@ class TraceEvent:
     outcome: Literal["pass", "review", "blocked"]
     detail: str
     latency_ms: int
+    evidence: dict | None = None
     timestamp: str = field(default_factory=now)
 
 

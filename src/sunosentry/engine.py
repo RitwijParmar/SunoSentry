@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import os
 import re
 import time
 from collections import Counter
 
-from .mcp_tools import create_proposed_dispatch, get_dispatch_policy, search_capacity
+from .mcp_tools import MCPToolBoundary, create_proposed_dispatch
 from .models import Session, TraceEvent
-from .triage_agent import VertexTriageAgent
+from .triage_agent import TriageDecision, VertexTriageAgent
 from .vertex_narrator import VertexNarrator
 
 
@@ -19,11 +18,15 @@ class VoiceOpsEngine:
     natural-language acknowledgement when explicitly enabled.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, mode: str = "multi_agent", mcp_transport: str | None = None) -> None:
+        if mode not in {"multi_agent", "single_agent", "rules_only"}:
+            raise ValueError("mode must be multi_agent, single_agent, or rules_only")
+        self.mode = mode
         self.sessions: dict[str, Session] = {}
         self.metrics: Counter[str] = Counter()
         self.narrator = VertexNarrator()
-        self.triage = VertexTriageAgent()
+        self.triage = VertexTriageAgent(enabled=False if mode == "rules_only" else None)
+        self.mcp = MCPToolBoundary(transport=mcp_transport)
 
     def new_session(self) -> Session:
         session = Session()
@@ -34,14 +37,24 @@ class VoiceOpsEngine:
     def get(self, session_id: str) -> Session:
         return self.sessions[session_id]
 
-    def _trace(self, session: Session, agent: str, decision: str, outcome: str, detail: str, started: float) -> None:
+    def _trace(
+        self,
+        session: Session,
+        agent: str,
+        decision: str,
+        outcome: str,
+        detail: str,
+        started: float,
+        evidence: dict | None = None,
+    ) -> None:
         session.trace.append(
             TraceEvent(
-                agent=agent,
+                agent=agent if self.mode == "multi_agent" else self.mode.replace("_", "-"),
                 decision=decision,
                 outcome=outcome,  # type: ignore[arg-type]
                 detail=detail,
                 latency_ms=max(1, round((time.perf_counter() - started) * 1000)),
+                evidence=evidence,
             )
         )
 
@@ -82,12 +95,51 @@ class VoiceOpsEngine:
         session.transcript.append({"role": "caller", "text": safe_text})
 
         triage_started = time.perf_counter()
-        issue_type, provider = self.triage.classify(safe_text)
-        self._trace(session, "triage-agent", "classify_service_intent", "pass", f"{issue_type}; provider={provider}", triage_started)
+        triage = self.triage.classify(safe_text)
+        if self.mode == "single_agent" and triage.abstained and not triage.prompt_injection:
+            # Deliberately weak ablation baseline: a single decision-maker turns
+            # uncertainty into an "other" request instead of escalating.
+            triage = TriageDecision("other", "single_agent_baseline", "none", 0.50, False, reason="naive uncertainty handling")
+        self.metrics["classifier_calls"] += triage.model_calls
+        triage_outcome = "review" if triage.abstained else "pass"
+        self._trace(
+            session,
+            "triage-agent",
+            "classify_service_intent",
+            triage_outcome,
+            f"{triage.issue_type}; provider={triage.provider}; confidence={triage.confidence:.2f}; reason={triage.reason or 'structured decision'}",
+            triage_started,
+        )
+
+        if triage.abstained:
+            safety_started = time.perf_counter()
+            self.metrics["abstentions"] += 1
+            self.metrics["human_escalations"] += 1
+            reply = "I cannot safely classify that request automatically. I am sending it to a human dispatcher for review; no service action was created."
+            self._trace(
+                session,
+                "safety-agent",
+                "abstain_and_escalate",
+                "blocked",
+                "Classifier abstained; no policy or dispatch tool was invoked.",
+                safety_started,
+            )
+            session.transcript.append({"role": "agent", "text": reply})
+            return {"reply": reply, "session": session.public(), "handoff": True}
+        issue_type = triage.issue_type
 
         policy_started = time.perf_counter()
-        policy = get_dispatch_policy(issue_type)
-        self._trace(session, "grounding-agent", "read_named_policy", "pass", policy["rule"], policy_started)
+        policy_result = self.mcp.call("dispatch_policy", {"issue_type": issue_type}, trace_id=session.trace_id)
+        self.metrics["mcp_calls"] += 1
+        if not policy_result["ok"]:
+            self.metrics["tool_failures"] += 1
+            self._trace(session, "grounding-agent", "read_named_policy", "review", policy_result.get("error", "MCP policy unavailable"), policy_started, policy_result.get("evidence"))
+            self.metrics["human_escalations"] += 1
+            reply = "The policy evidence service is unavailable, so I will not propose a service action. A human dispatcher will review this request."
+            session.transcript.append({"role": "agent", "text": reply})
+            return {"reply": reply, "session": session.public(), "handoff": True}
+        policy = policy_result["value"]
+        self._trace(session, "grounding-agent", "read_named_policy", "pass", policy["rule"], policy_started, policy_result.get("evidence"))
 
         if issue_type == "gas_smell":
             safety_started = time.perf_counter()
@@ -99,9 +151,18 @@ class VoiceOpsEngine:
             return {"reply": reply, "session": session.public(), "handoff": True}
 
         plan_started = time.perf_counter()
-        capacity = search_capacity(policy["urgency"])
+        capacity_result = self.mcp.call("capacity_evidence", {"urgency": policy["urgency"]}, trace_id=session.trace_id)
+        self.metrics["mcp_calls"] += 1
+        if not capacity_result["ok"]:
+            self.metrics["tool_failures"] += 1
+            self._trace(session, "planning-agent", "propose_dispatch_window", "review", capacity_result.get("error", "MCP capacity unavailable"), plan_started, capacity_result.get("evidence"))
+            self.metrics["human_escalations"] += 1
+            reply = "I could not verify a service window, so no action was proposed. A human dispatcher will review this request."
+            session.transcript.append({"role": "agent", "text": reply})
+            return {"reply": reply, "session": session.public(), "handoff": True}
+        capacity = capacity_result["value"]
         session.proposal = create_proposed_dispatch(issue_type, policy["urgency"], capacity["availability"])
-        self._trace(session, "planning-agent", "propose_dispatch_window", "pass", capacity["availability"], plan_started)
+        self._trace(session, "planning-agent", "propose_dispatch_window", "pass", capacity["availability"], plan_started, capacity_result.get("evidence"))
 
         safety_started = time.perf_counter()
         if confirmed:
@@ -131,5 +192,10 @@ class VoiceOpsEngine:
             "verified_handoffs": self.metrics["verified_handoffs"],
             "pii_redactions": sum(session.pii_redactions for session in sessions),
             "vertex_narrations": self.metrics["vertex_narrations"],
+            "classifier_model_calls": self.metrics["classifier_calls"],
+            "mcp_calls": self.metrics["mcp_calls"],
+            "mcp_tool_failures": self.metrics["tool_failures"],
+            "classifier_abstentions": self.metrics["abstentions"],
+            "mode": self.mode,
             "slo": {"handoff_trace_complete": "100%", "unconfirmed_dispatches": 0},
         }

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .models import DispatchProposal, Session, TraceEvent
 
@@ -33,7 +33,7 @@ class FirestoreSessionStore:
                 {
                     **session.public(),
                     "transcript": session.transcript,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(UTC).isoformat(),
                     "data_boundary": "redacted_text_only_no_audio",
                 }
             )

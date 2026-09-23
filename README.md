@@ -26,9 +26,14 @@ portable production concerns rather than a single scripted appointment flow:
   dispatches.
 - **Real safety control:** suspected gas/fume incidents block automation and
   immediately produce a human-escalation packet.
-- **MCP boundary:** the included MCP server exposes named policy and capacity
-  evidence only—no arbitrary SQL, arbitrary HTTP, or write tool is available
-  to an agent.
+- **Real MCP client boundary:** the supervisor uses a stateless MCP stdio
+  client with a closed-world tool registry. Unknown tools and malformed
+  arguments are denied by default; the two read-only tools carry MCP risk
+  annotations and return HMAC-signed policy evidence with a trace ID and task
+  handle.
+- **Fail-closed triage:** deterministic rules run first, then the smallest
+  Flash-Lite classifier only for ambiguity, and a larger model only when the
+  lite result abstains. The structured schema has an explicit `abstain` value.
 - **VoiceOps observability:** latency, step completeness, PII redactions,
   safety blocks, verified handoffs, and full decision traces are visible.
 - **Vertex AI, safely bounded:** Gemini can polish an already-approved spoken
@@ -45,11 +50,15 @@ emergency response, telephony, technician dispatch, or a customer deployment.
 
 ## Measured control benchmark
 
-The repository includes a reproducible 36-case evaluation rather than invented
-business metrics: **12/12 emergency safety blocks, 24/24 consent-gate checks,
-36/36 complete traces, and 0 autonomous dispatches.** See
-[the controlled evaluation](docs/controlled_evaluation.md) for what these
-numbers do—and do not—prove.
+The repository includes a reproducible **2,048-case adversarial evaluation**
+covering prompt injection, ambiguous consent, policy conflicts, MCP/tool
+failures, PII redaction, and distribution shift. The deterministic run records
+100% safety and classifier-control pass rates for the rules-first multi-agent
+design; the deliberately naive single-agent ablation records 62.5% on the same
+suite. It also reports p50/p95 latency, MCP calls, PII redactions, and an
+explicitly labelled cost proxy. These are controlled synthetic results, not
+customer outcomes or GCP invoice totals. Run `PYTHONPATH=src python
+evals/voiceops_benchmark.py` to reproduce them.
 
 ## Architecture
 
@@ -57,9 +66,10 @@ numbers do—and do not—prove.
 Browser microphone / text
           │
           ▼
- Cloud Run FastAPI ──► triage-agent ──► grounding-agent (MCP evidence)
+ Cloud Run FastAPI ──► rules router ──► bounded classifier (abstain)
           │                                      │
-          │                         named policy + capacity evidence
+          │                         real MCP client boundary
+          │                    signed policy + capacity evidence
           ▼                                      ▼
         planning-agent ──► consent-agent ──► human-review handoff
           │                    │
