@@ -8,8 +8,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .cloud_runtime import FirestoreSessionStore, HandoffEventPublisher
 from .benchmarks import CONTROLLED_BENCHMARK
+from .cloud_runtime import FirestoreSessionStore, HandoffEventPublisher
 from .engine import VoiceOpsEngine
 
 # In a local checkout the working directory is the repository; in the container
