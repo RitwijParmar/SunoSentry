@@ -5,5 +5,5 @@ __pycache__/
 *.egg-info/
 *.pyc
 .env
-artifacts/*.mov
-artifacts/*.aiff
+artifacts/*
+!artifacts/sunosentry-live-demo-final.mp4
