@@ -1,0 +1,11 @@
+Okay, so this is SunoSentry. Let me show you how a real service call would move through it, in a very simple way.
+
+I am going to use a water-leak request. First, the agent understands the issue, but it does not jump straight to booking someone. It checks the service intent, reads the approved safety guidance, and then looks for a qualified time window.
+
+You can see the proposal here: today, from two to four PM. This is still only a draft. The important part is that the system is asking for clear confirmation; it is not silently dispatching a technician in the background.
+
+Now I will confirm that proposal. Once I say yes, the consent step records the confirmation and sends the proposal to a human-review queue. The final decision still belongs to a dispatcher.
+
+On the right, the trace shows the individual agents: triage, grounding, planning, and consent. Each one leaves a small piece of evidence, including the policy check and the reason the handoff was allowed. That is the observability piece: when something goes wrong, we can see where it happened.
+
+And just to be clear, this is a controlled demo. It does not call a real technician, touch a real calendar, take payment, or upload caller audio. What it does prove is the safety boundary: understand the request, ground it in policy, ask for explicit consent, and only then prepare a human handoff.
