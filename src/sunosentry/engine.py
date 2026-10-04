@@ -94,6 +94,27 @@ class VoiceOpsEngine:
         session.turn_count += 1
         session.transcript.append({"role": "caller", "text": safe_text})
 
+        # Confirmation is a state transition on the proposal already shown to
+        # the caller. Do not send the confirmation phrase back through intent
+        # classification: it contains no service issue and would otherwise
+        # look like an ambiguous new request.
+        if confirmed and session.proposal and session.proposal.status == "draft":
+            safety_started = time.perf_counter()
+            session.proposal.confirmation_received = True
+            session.proposal.status = "ready_for_handoff"
+            self._trace(
+                session,
+                "consent-agent",
+                "verify_spoken_confirmation",
+                "pass",
+                "Explicit confirmation recorded; proposal sent to human queue.",
+                safety_started,
+            )
+            self.metrics["verified_handoffs"] += 1
+            reply = f"Thank you. I recorded your confirmation for {session.proposal.proposed_window}. A human dispatcher will verify and finalize the service request."
+            session.transcript.append({"role": "agent", "text": reply})
+            return {"reply": reply, "session": session.public(), "handoff": True}
+
         triage_started = time.perf_counter()
         triage = self.triage.classify(safe_text)
         if self.mode == "single_agent" and triage.abstained and not triage.prompt_injection:

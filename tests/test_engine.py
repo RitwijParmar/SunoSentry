@@ -27,6 +27,23 @@ def test_spoken_confirmation_creates_only_verified_handoff() -> None:
     assert result["session"]["proposal"]["confirmation_received"] is True
 
 
+def test_follow_up_confirmation_transitions_existing_proposal() -> None:
+    engine = VoiceOpsEngine()
+    session = engine.new_session()
+    draft = engine.handle_turn(session.session_id, "There is a water leak under my sink")
+    assert draft["session"]["proposal"]["status"] == "draft"
+
+    confirmed = engine.handle_turn(
+        session.session_id,
+        "Yes, please send that proposal to a human dispatcher.",
+        confirmed=True,
+    )
+    assert confirmed["handoff"] is True
+    assert confirmed["session"]["proposal"]["status"] == "ready_for_handoff"
+    assert confirmed["session"]["proposal"]["confirmation_received"] is True
+    assert confirmed["session"]["trace"][-1]["agent"] == "consent-agent"
+
+
 def test_heating_language_is_a_priority_issue() -> None:
     engine = VoiceOpsEngine()
     session = engine.new_session()
