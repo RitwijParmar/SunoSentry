@@ -46,6 +46,9 @@ portable production concerns rather than a single scripted appointment flow:
 
 The live integration evidence, including the explicit Vertex fallback boundary,
 is recorded in [docs/live_gcp_evidence.md](docs/live_gcp_evidence.md).
+The browser flow and current live-endpoint verification are recorded in
+[docs/ui_test_report.md](docs/ui_test_report.md); the natural voice demo is
+described in [docs/voice_demo.md](docs/voice_demo.md).
 
 This is a simulated operational environment. It is not medical advice,
 emergency response, telephony, technician dispatch, or a customer deployment.

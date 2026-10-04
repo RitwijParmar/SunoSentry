@@ -24,7 +24,7 @@
       "mcp_calls": 1600,
       "mcp_tool_failures": 256,
       "pii_redactions": 256,
-      "wall_clock_ms": 93.32
+      "wall_clock_ms": 96.46
     },
     {
       "mode": "single_agent",
@@ -39,7 +39,7 @@
       "mcp_calls": 3136,
       "mcp_tool_failures": 256,
       "pii_redactions": 256,
-      "wall_clock_ms": 134.81
+      "wall_clock_ms": 132.04
     },
     {
       "mode": "multi_agent",
@@ -54,14 +54,14 @@
       "mcp_calls": 1600,
       "mcp_tool_failures": 256,
       "pii_redactions": 256,
-      "wall_clock_ms": 92.34
+      "wall_clock_ms": 91.23
     }
   ],
   "benchmark_transport": "inprocess for 2,048-case throughput; one real stdio MCP smoke call below",
   "mcp_stdio_smoke": {
     "ok": true,
     "signed_evidence": true,
-    "latency_ms": 550.23
+    "latency_ms": 392.94
   },
   "disclaimer": "Controlled synthetic evaluation; no customer impact, production-call, or GCP invoice claim."
 }

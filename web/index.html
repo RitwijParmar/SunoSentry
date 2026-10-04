@@ -15,7 +15,7 @@
     textarea { width:100%; background:#081526; color:var(--ink); border:1px solid var(--line); border-radius:12px; padding:12px; resize:vertical; min-height:72px; font:inherit; margin:14px 0 10px; } button { border:0; border-radius:10px; padding:11px 14px; font:600 14px inherit; cursor:pointer; color:#06120d; background:var(--accent); } button.secondary { background:transparent; color:var(--ink); border:1px solid var(--line); } button:disabled { opacity:.45; cursor:not-allowed; }
     .controls { display:flex; gap:9px; flex-wrap:wrap; }.proposal { margin-top:16px; padding:14px; border:1px solid #355b73; border-radius:12px; background:#0b192c; }.proposal strong { color:var(--accent); }.blocked strong { color:var(--danger); }.metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:15px 0; }.metric { padding:12px; border-radius:12px; background:#0a1728; border:1px solid var(--line); }.metric b { display:block; font-size:22px; margin-top:4px; color:var(--accent); }
     .trace { display:flex; flex-direction:column; gap:9px; max-height:392px; overflow:auto; }.step { border:1px solid var(--line); border-radius:10px; padding:10px; font-size:13px; }.step .meta { display:flex; justify-content:space-between; color:var(--muted); margin-bottom:4px; }.pass { border-left:3px solid var(--accent); }.review { border-left:3px solid var(--warn); }.blocked { border-left:3px solid var(--danger); }
-    .scenarios { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }.scenarios button { padding:7px 9px; font-size:12px; background:#d8e4ff; } footer { margin-top:20px; color:var(--muted); font-size:13px; } @media(max-width:850px){ header,.grid { display:block; }.badge { display:inline-block; margin-top:14px; }.grid .panel+ .panel { margin-top:16px; } .conversation { height:340px; }}
+    .voice-demo { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin:2px 0 8px; padding:10px; border:1px solid var(--line); border-radius:12px; background:#0a1728; }.voice-demo button { padding:8px 10px; font-size:12px; }.voice-demo label { color:var(--muted); }.voice-demo select { max-width:230px; background:#081526; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px; }.voice-demo small { flex-basis:100%; }.scenarios { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }.scenarios button { padding:7px 9px; font-size:12px; background:#d8e4ff; } footer { margin-top:20px; color:var(--muted); font-size:13px; } @media(max-width:850px){ header,.grid { display:block; }.badge { display:inline-block; margin-top:14px; }.grid .panel+ .panel { margin-top:16px; } .conversation { height:340px; }}
   </style>
 </head>
 <body>
@@ -29,6 +29,7 @@
         <div id="conversation" class="conversation"></div>
         <textarea id="transcript" placeholder="Example: There is water leaking under my kitchen sink."></textarea>
         <div class="controls"><button id="mic">🎙 Start listening</button><button id="send">Send message</button><button id="confirm" class="secondary">Confirm proposed window</button><button id="reset" class="secondary">New call</button></div>
+        <div class="voice-demo"><button id="voiceDemo" class="secondary">▶ Play natural voice demo</button><label for="voiceSelect"><small>Voice</small></label><select id="voiceSelect" aria-label="Voice selection"><option>Loading browser voices…</option></select><small id="voiceStatus">Uses a high-quality voice installed by your browser; audio is not recorded or uploaded.</small></div>
         <div class="scenarios"><button data-scenario="There is water leaking under my kitchen sink.">Water leak</button><button data-scenario="My furnace stopped and the apartment is cold.">No heat</button><button data-scenario="I smell gas near the boiler.">Safety escalation</button></div>
         <div id="proposal" class="proposal"><strong>Action gate ready</strong><br><small>No dispatch proposal yet. SunoSentry only creates a human-review proposal after policy and capacity checks.</small></div>
       </div>
@@ -41,20 +42,33 @@
     <footer>Demo boundary: simulated capacity and human queue. No real technician, account, payment, calendar, or telephony action is performed.</footer>
   </main>
   <script>
-    let sessionId = null, recognition = null, listening = false;
+    let sessionId = null, recognition = null, listening = false, voices = [];
     const $ = id => document.getElementById(id);
     const conversation = $('conversation');
     function bubble(text, kind='agent') { const el=document.createElement('div'); el.className=`bubble ${kind}`; el.textContent=text; conversation.appendChild(el); conversation.scrollTop=conversation.scrollHeight; }
-    function speak(text) { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.rate=.98; speechSynthesis.speak(utterance); }
+    const voiceOrder = ['Samantha', 'Ava', 'Karen', 'Google US English', 'Microsoft Aria', 'Daniel', 'Moira'];
+    function loadVoices(){
+      if (!('speechSynthesis' in window)) { $('voiceStatus').textContent='Speech synthesis is unavailable; use the typed demo.'; return; }
+      voices = speechSynthesis.getVoices().filter(v=>/^en(-|_)/i.test(v.lang));
+      const select=$('voiceSelect'); select.innerHTML='';
+      voices.forEach((voice,index)=>{ const option=document.createElement('option'); option.value=String(index); option.textContent=`${voice.name} (${voice.lang})`; select.appendChild(option); });
+      const preferred=voiceOrder.find(name=>voices.some(v=>v.name.toLowerCase().includes(name.toLowerCase())));
+      const choice=preferred ? voices.findIndex(v=>v.name.toLowerCase().includes(preferred.toLowerCase())) : 0;
+      if(choice>=0 && voices.length) select.value=String(choice);
+      $('voiceStatus').textContent=voices.length ? `Selected: ${voices[Number(select.value)]?.name || voices[0].name}. Browser voice only; no audio is uploaded.` : 'No English browser voice found; the system default will be used.';
+    }
+    function speak(text) { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); const selected=voices[Number($('voiceSelect').value)]; if(selected) utterance.voice=selected; utterance.rate=.94; utterance.pitch=1.02; utterance.volume=1; speechSynthesis.speak(utterance); }
+    function playVoiceDemo(){ speak('Welcome to SunoSentry. I listen for the service issue, check the approved safety policy, and ask for explicit confirmation before sending a proposal to a human dispatcher. If the request is unsafe or unclear, I stop and escalate.'); }
     async function newCall(){ const data=await fetch('/api/sessions',{method:'POST'}).then(r=>r.json()); sessionId=data.session.session_id; conversation.innerHTML=''; bubble(data.reply); speak(data.reply); render(data.session); }
-    function render(session){ const p=session.proposal, box=$('proposal'); if(p){ box.className='proposal'; box.innerHTML=`<strong>${p.status === 'ready_for_handoff' ? '✓ Human-review handoff ready' : 'Confirmation required'}</strong><br><small>${p.issue_type.replaceAll('_',' ')} · ${p.urgency} · ${p.proposed_window}</small>`; } else if(session.trace.some(e=>e.outcome==='blocked')) { box.className='proposal blocked'; box.innerHTML='<strong>Safety escalation active</strong><br><small>Automated dispatch is blocked. The human queue has the full policy-grounded trace.</small>'; }
+    function render(session){ const p=session.proposal, box=$('proposal'); if(p){ box.className='proposal'; box.innerHTML=`<strong>${p.status === 'ready_for_handoff' ? '✓ Human-review handoff ready' : 'Confirmation required'}</strong><br><small>${p.issue_type.replaceAll('_',' ')} · ${p.urgency} · ${p.proposed_window}</small>`; } else if(session.trace.some(e=>e.outcome==='blocked')) { box.className='proposal blocked'; box.innerHTML='<strong>Safety escalation active</strong><br><small>Automated dispatch is blocked. The human queue has the full policy-grounded trace.</small>'; } else { box.className='proposal'; box.innerHTML='<strong>Action gate ready</strong><br><small>No dispatch proposal yet. SunoSentry only creates a human-review proposal after policy and capacity checks.</small>'; }
       $('trace').innerHTML=session.trace.map(e=>`<div class="step ${e.outcome}"><div class="meta"><b>${e.agent}</b><span>${e.latency_ms} ms · ${e.outcome}</span></div><div>${e.decision}</div><small>${e.detail}</small></div>`).join(''); $('steps').textContent=session.trace.length; $('redactions').textContent=session.pii_redactions; refreshMetrics(); }
     async function refreshMetrics(){ const m=await fetch('/api/observability').then(r=>r.json()); $('blocks').textContent=m.safety_blocks; $('handoffs').textContent=m.verified_handoffs; $('abstentions').textContent=m.classifier_abstentions; $('toolFailures').textContent=m.mcp_tool_failures; }
     async function send(confirmed=false){ const text=$('transcript').value.trim(); if(!text || !sessionId) return; bubble(text,'caller'); $('transcript').value=''; const response=await fetch('/api/turns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,transcript:text,confirmed})}); const data=await response.json(); bubble(data.reply); speak(data.reply); render(data.session); }
     $('send').onclick=()=>send(false); $('confirm').onclick=()=>{ $('transcript').value='Yes, please send that proposal to a human dispatcher.'; send(true); }; $('reset').onclick=newCall;
+    $('voiceDemo').onclick=playVoiceDemo; $('voiceSelect').onchange=()=>{ const voice=voices[Number($('voiceSelect').value)]; if(voice) $('voiceStatus').textContent=`Selected: ${voice.name}. Browser voice only; no audio is uploaded.`; };
     document.querySelectorAll('[data-scenario]').forEach(btn=>btn.onclick=()=>{ $('transcript').value=btn.dataset.scenario; send(false); });
     $('mic').onclick=()=>{ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SpeechRecognition){ bubble('Browser speech recognition is unavailable here. You can type the request instead.','event'); return; } if(!recognition){ recognition=new SpeechRecognition(); recognition.lang='en-US'; recognition.interimResults=true; recognition.continuous=false; recognition.onresult=e=>{ let t=''; for(let i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript; $('transcript').value=t; }; recognition.onend=()=>{listening=false;$('mic').textContent='🎙 Start listening'; if($('transcript').value.trim())send(false);}; } if(!listening){listening=true;$('mic').textContent='■ Stop listening';recognition.start();}else{recognition.stop();} };
-    newCall();
+    if('speechSynthesis' in window) speechSynthesis.onvoiceschanged=loadVoices; loadVoices(); newCall();
   </script>
 </body>
 </html>
