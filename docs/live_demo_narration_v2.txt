@@ -1,0 +1,13 @@
+Okay, let me walk you through this slowly. This is SunoSentry, a voice-operations demo for service teams. I’ll show the path from a caller’s words to a safe human handoff.
+
+First, notice the layout. On the left is the conversation. On the right is observability: agent steps, safety blocks, redactions, failures, and the adversarial test result. I’ll point to each part.
+
+Now I’ll enter a realistic request: there is water leaking under my kitchen sink. I’m sending it now. The system should understand the intent before it proposes anything.
+
+Here is the proposal: today, two to four PM. Notice it is still a draft. The agent is asking for confirmation; it has not silently booked a technician. That consent gate is deliberate.
+
+Now I’ll confirm the window. Once I say yes, the request moves to human review. The dispatcher still makes the operational decision, so the agent stays helpful without overstepping.
+
+Look at the trace on the right. Triage identifies the issue, grounding reads policy, planning proposes a window, and consent records the confirmation. Every step leaves evidence, so an operator can see what happened and why.
+
+And that is the point in plain language: understand the request, check the rules, ask clearly, then prepare a human handoff. This demo does not call a real technician or touch a real calendar, payment, or phone system.
